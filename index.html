@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extreme Browser Engine Benchmark</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0510 0%, #1a0a2a 50%, #0a0510 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff0055, #ff6600, #ff0055);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 2s linear infinite;
+        }
+
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .warning {
+            background: rgba(255, 0, 85, 0.1);
+            border: 1px solid rgba(255, 0, 85, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #ff6666;
+        }
+
+        .engine-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255, 102, 0, 0.1);
+            border: 1px solid rgba(255, 102, 0, 0.3);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .engine-name {
+            color: #ff6600;
+            font-weight: 700;
+        }
+
+        .score-display {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 30px;
+        }
+
+        .score-ring {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #ff0055 0%, #ff6600 50%, #ff0055 100%);
+            padding: 8px;
+            animation: rotate 3s linear infinite;
+            opacity: 0.3;
+        }
+
+        .score-ring.active {
+            opacity: 1;
+        }
+
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .score-inner {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            background: linear-gradient(135deg, #0a0510, #1a0a2a);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .score-value {
+            font-size: 4.5rem;
+            font-weight: 800;
+            background: linear-gradient(180deg, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 1rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 5px;
+        }
+
+        .rating {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-top: 15px;
+            padding: 8px 25px;
+            border-radius: 30px;
+            display: none;
+        }
+
+        .rating.show { display: inline-block; }
+        .rating-legendary { background: linear-gradient(90deg, #ff0055, #ff6600); color: #fff; }
+        .rating-excellent { background: #ff6600; color: #fff; }
+        .rating-good { background: #ffaa00; color: #000; }
+        .rating-average { background: #888; color: #fff; }
+        .rating-poor { background: #444; color: #fff; }
+
+        .btn {
+            padding: 16px 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            background: linear-gradient(90deg, #ff0055, #ff6600);
+            color: #fff;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 40px rgba(255, 0, 85, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-text {
+            margin-top: 20px;
+            color: #ff6600;
+            font-size: 0.9rem;
+            height: 24px;
+        }
+
+        .details {
+            margin-top: 30px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+
+        .details.show {
+            display: block;
+        }
+
+        .details h3 {
+            color: #ff6600;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+        }
+
+        .detail-name {
+            color: #888;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #testArea {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1000px;
+            height: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Performance Browser Engine Benchmark</h1>
+        <p class="subtitle">Extreme browser engine stress test</p>
+        
+        <div class="warning">
+             Uses JIT-hostile patterns — may take 10-30 seconds
+        </div>
+
+        <div class="engine-badge">
+            Engine: <span class="engine-name" id="engineName">Detecting...</span>
+        </div>
+
+        <div class="score-display">
+            <div class="score-ring" id="scoreRing"></div>
+            <div class="score-inner">
+                <div class="score-value" id="scoreValue">0</div>
+                <div class="score-label">Score</div>
+            </div>
+        </div>
+
+        <div class="rating" id="rating"></div>
+
+        <button class="btn" id="startBtn" onclick="runBenchmark()">
+            Start Performance Test
+        </button>
+
+        <div class="progress-text" id="progressText"></div>
+
+        <div class="details" id="details">
+            <h3>Test Breakdown</h3>
+            <div id="detailsList"></div>
+        </div>
+    </div>
+
+    <div id="testArea"></div>
+
+    <script>
+        function detectEngine() {
+            const ua = navigator.userAgent;
+            let engine = 'Unknown';
+            
+            if (ua.includes('Firefox')) engine = 'SpiderMonkey (Firefox)';
+            else if (ua.includes('Edg')) engine = 'V8 (Edge)';
+            else if (ua.includes('Chrome')) engine = 'V8 (Chrome)';
+            else if (ua.includes('Safari')) engine = 'JavaScriptCore (Safari)';
+            
+            document.getElementById('engineName').textContent = engine;
+        }
+
+        function animateScore(target) {
+            const scoreEl = document.getElementById('scoreValue');
+            const duration = 2000;
+            const start = performance.now();
+            
+            function update() {
+                const elapsed = performance.now() - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                scoreEl.textContent = Math.round(target * eased);
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            
+            requestAnimationFrame(update);
+        }
+
+        const testResults = {};
+
+        async function runBenchmark() {
+            const btn = document.getElementById('startBtn');
+            const progressText = document.getElementById('progressText');
+            const scoreRing = document.getElementById('scoreRing');
+            const rating = document.getElementById('rating');
+            const details = document.getElementById('details');
+            
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            rating.classList.remove('show');
+            details.classList.remove('show');
+            scoreRing.classList.add('active');
+            document.getElementById('scoreValue').textContent = '0';
+            
+            const tests = [
+                { name: 'Megamorphic Calls', fn: testMegamorphic },
+                { name: 'Hidden Class Chaos', fn: testHiddenClassChaos },
+                { name: 'Proxy Overhead', fn: testProxyOverhead },
+                { name: 'Deep Prototype Chain', fn: testDeepPrototypes },
+                { name: 'Deopt Triggers', fn: testDeoptTriggers },
+                { name: 'Pathological Regex', fn: testPathologicalRegex },
+                { name: 'Scope Chain Torture', fn: testScopeChainTorture },
+                { name: 'Deep DOM Nesting', fn: testDOMDeepNesting },
+                { name: 'CSS Selector Stress', fn: testCSSSelectorStress },
+                { name: 'Layout Thrashing', fn: testLayoutThrashExtreme },
+                { name: 'Sparse Arrays', fn: testSparseArrays },
+                { name: 'Generator Stress', fn: testGeneratorStress },
+                { name: 'WeakRef Pressure', fn: testWeakRefPressure },
+                { name: 'Reflect Meta Ops', fn: testReflectMetaOps },
+                { name: 'Symbol Chaos', fn: testSymbolChaos }
+            ];
+            
+            let totalOps = 0;
+            
+            for (const test of tests) {
+                progressText.textContent = `Testing: ${test.name}...`;
+                
+                // Allow UI to update
+                await new Promise(r => setTimeout(r, 50));
+                
+                try {
+                    const ops = await test.fn();
+                    testResults[test.name] = ops;
+                    totalOps += ops;
+                } catch (e) {
+                    console.error(`Test ${test.name} failed:`, e);
+                    testResults[test.name] = 0;
+                }
+            }
+            
+            progressText.textContent = 'Calculating...';
+            await new Promise(r => setTimeout(r, 200));
+            
+            const baseline = 15000000;
+            const finalScore = Math.round((totalOps / baseline) * 100);
+            
+            animateScore(finalScore);
+            
+            let ratingText, ratingClass;
+            if (finalScore >= 150) { ratingText = 'LEGENDARY'; ratingClass = 'rating-legendary'; }
+            else if (finalScore >= 110) { ratingText = 'EXCELLENT'; ratingClass = 'rating-excellent'; }
+            else if (finalScore >= 80) { ratingText = 'GOOD'; ratingClass = 'rating-good'; }
+            else if (finalScore >= 50) { ratingText = 'AVERAGE'; ratingClass = 'rating-average'; }
+            else { ratingText = '▽ STRUGGLING'; ratingClass = 'rating-poor'; }
+            
+            setTimeout(() => {
+                rating.textContent = ratingText;
+                rating.className = `rating show ${ratingClass}`;
+                progressText.textContent = '';
+                showDetails();
+            }, 2100);
+            
+            btn.disabled = false;
+            btn.textContent = 'Run Again';
+        }
+
+        function showDetails() {
+            const details = document.getElementById('details');
+            const list = document.getElementById('detailsList');
+            
+            list.innerHTML = Object.entries(testResults).map(([name, ops]) => `
+                <div class="detail-row">
+                    <span class="detail-name">${name}</span>
+                    <span class="detail-value">${formatOps(ops)} ops/s</span>
+                </div>
+            `).join('');
+            
+            details.classList.add('show');
+        }
+
+        function formatOps(ops) {
+            if (ops >= 1000000) return (ops / 1000000).toFixed(2) + 'M';
+            if (ops >= 1000) return (ops / 1000).toFixed(1) + 'K';
+            return Math.round(ops).toString();
+        }
+
+        // ============================================
+        // FIXED EXTREME STRESS TESTS
+        // ============================================
+
+        function testMegamorphic() {
+            const shapes = [];
+            for (let i = 0; i < 30; i++) {
+                const obj = {};
+                for (let j = 0; j <= i; j++) {
+                    obj['prop' + j] = j;
+                }
+                obj.getValue = function() { return this.prop0 || 0; };
+                shapes.push(obj);
+            }
+            
+            function processObject(obj) {
+                return obj.getValue() + (obj.prop0 || 0) + (obj.prop1 || 0);
+            }
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 30000; i++) {
+                total += processObject(shapes[i % shapes.length]);
+            }
+            
+            return Math.round(30000 / ((performance.now() - start) / 1000));
+        }
+
+        function testHiddenClassChaos() {
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 8000; i++) {
+                const obj = { a: 1, b: 2, c: 3 };
+                
+                obj['d' + (i % 10)] = i;
+                obj['e' + (i % 7)] = i;
+                
+                delete obj.b;
+                
+                obj.b = (i % 2) ? 'string' : 42;
+                
+                for (const key in obj) {
+                    if (obj.hasOwnProperty(key)) {
+                        total += typeof obj[key] === 'number' ? obj[key] : 1;
+                    }
+                }
+            }
+            
+            return Math.round(8000 / ((performance.now() - start) / 1000));
+        }
+
+        function testProxyOverhead() {
+            const handler = {
+                get(target, prop) {
+                    return Reflect.get(target, prop);
+                },
+                set(target, prop, value) {
+                    return Reflect.set(target, prop, value);
+                },
+                has(target, prop) {
+                    return Reflect.has(target, prop);
+                }
+            };
+            
+            function createDeepProxy(obj, depth) {
+                if (depth === 0) return obj;
+                return new Proxy(createDeepProxy(obj, depth - 1), handler);
+            }
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 3000; i++) {
+                const obj = createDeepProxy({ a: 1, b: 2, c: 3, d: 4 }, 4);
+                
+                obj.a = i;
+                obj.b = i + 1;
+                total += obj.a + obj.b + obj.c + obj.d;
+                
+                'a' in obj;
+                Object.keys(obj);
+            }
+            
+            return Math.round(3000 / ((performance.now() - start) / 1000));
+        }
+
+        function testDeepPrototypes() {
+            function createDeepChain(depth) {
+                if (depth === 0) {
+                    return { baseMethod() { return 1; }, baseProp: 1 };
+                }
+                
+                const proto = createDeepChain(depth - 1);
+                const obj = Object.create(proto);
+                obj['level' + depth + 'Prop'] = depth;
+                obj['level' + depth + 'Method'] = function() { return depth; };
+                
+                if (depth % 3 === 0) obj.baseProp = depth;
+                
+                return obj;
+            }
+            
+            const deepObjects = [];
+            for (let i = 0; i < 50; i++) {
+                deepObjects.push(createDeepChain(15));
+            }
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let round = 0; round < 100; round++) {
+                for (const obj of deepObjects) {
+                    total += obj.baseProp;
+                    total += obj.level5Prop || 0;
+                    total += obj.level10Prop || 0;
+                    total += obj.level15Prop || 0;
+                    total += obj.baseMethod();
+                    total += obj.nonExistent || 0;
+                }
+            }
+            
+            return Math.round((deepObjects.length * 100 * 6) / ((performance.now() - start) / 1000));
+        }
+
+        function testDeoptTriggers() {
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 5000; i++) {
+                try {
+                    const obj = { a: 1, b: 2 };
+                    
+                    // arguments manipulation
+                    (function() {
+                        arguments[0] = 10;
+                        total += arguments[0] + arguments[1];
+                    })(i, i + 1);
+                    
+                    // Type changes
+                    let x = i;
+                    x = (i % 3 === 0) ? 'string' : x;
+                    x = (i % 5 === 0) ? { val: i } : x;
+                    total += typeof x === 'number' ? x : 1;
+                    
+                } catch (e) {
+                    total++;
+                }
+                
+                function polymorphicAdd(a, b) {
+                    return a + b;
+                }
+                
+                if (i % 4 === 0) total += polymorphicAdd(i, i);
+                else if (i % 4 === 1) total += polymorphicAdd('a', 'b').length;
+                else if (i % 4 === 2) total += polymorphicAdd([1], [2]).length;
+                else total += String(polymorphicAdd(i, 'x')).length;
+            }
+            
+            return Math.round(5000 / ((performance.now() - start) / 1000));
+        }
+
+        function testPathologicalRegex() {
+            const patterns = [
+                { regex: /^(a+)+$/, input: 'aaaaaaaaaa' },
+                { regex: /^(a|a)+$/, input: 'aaaaaaaaaa' },
+                { regex: /a.*?b.*?c.*?d/, input: 'aXXbXXcXXdXX' },
+                { regex: /(\w+)\s+\1/, input: 'foo foo bar' },
+            ];
+            
+            const start = performance.now();
+            let matches = 0;
+            
+            for (let i = 0; i < 3000; i++) {
+                for (const p of patterns) {
+                    if (p.regex.test(p.input)) matches++;
+                    p.input.match(p.regex);
+                    p.input.replace(p.regex, 'X');
+                }
+                
+                const str = 'The quick brown fox jumps over the lazy dog';
+                str.replace(/(\w)(\w+)/g, (m, a, b) => b + a);
+            }
+            
+            return Math.round((3000 * patterns.length) / ((performance.now() - start) / 1000));
+        }
+
+        // FIXED: Variables now defined before use
+        function testScopeChainTorture() {
+            function createDeepScope(depth) {
+                const a = depth;
+                const b = depth * 2;
+                const c = depth * 3;
+                const d = depth * 4;
+                const e = depth * 5;
+                
+                if (depth === 0) {
+                    return function() {
+                        return a + b + c + d + e;
+                    };
+                }
+                
+                const inner = createDeepScope(depth - 1);
+                
+                return function() {
+                    return a + b + c + inner();
+                };
+            }
+            
+            const fns = [];
+            for (let i = 0; i < 20; i++) {
+                fns.push(createDeepScope(10));
+            }
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let round = 0; round < 100; round++) {
+                for (const fn of fns) {
+                    total += fn();
+                }
+            }
+            
+            return Math.round((fns.length * 100) / ((performance.now() - start) / 1000));
+        }
+
+        function testDOMDeepNesting() {
+            const container = document.getElementById('testArea');
+            
+            function createDeepDOM(parent, depth, breadth) {
+                if (depth === 0) return;
+                
+                for (let i = 0; i < breadth; i++) {
+                    const div = document.createElement('div');
+                    div.className = `level-${depth} item-${i} ${depth % 2 ? 'odd' : 'even'}`;
+                    div.setAttribute('data-depth', depth);
+                    parent.appendChild(div);
+                    createDeepDOM(div, depth - 1, Math.max(1, breadth - 1));
+                }
+            }
+            
+            const start = performance.now();
+            
+            createDeepDOM(container, 8, 3);
+            
+            for (let i = 0; i < 15; i++) {
+                container.querySelectorAll('div.odd > div.even > div');
+                container.querySelectorAll('[data-depth="4"] [data-depth="2"]');
+                
+                const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT);
+                let count = 0;
+                while (walker.nextNode()) count++;
+                
+                const nodes = container.querySelectorAll('.level-1');
+                nodes.forEach(n => {
+                    n.style.color = 'red';
+                });
+            }
+            
+            const time = performance.now() - start;
+            container.innerHTML = '';
+            
+            return Math.round(15 / (time / 1000));
+        }
+
+        function testCSSSelectorStress() {
+            const container = document.getElementById('testArea');
+            
+            let html = '';
+            for (let i = 0; i < 80; i++) {
+                html += `
+                    <div class="container c-${i % 10}" data-type="${i % 5}">
+                        <span class="label ${i % 2 ? 'active' : 'inactive'}">
+                            <a href="#" class="link" data-index="${i}">Link</a>
+                        </span>
+                        <ul class="list">
+                            <li class="item first">First</li>
+                            <li class="item">Second</li>
+                            <li class="item last">Last</li>
+                        </ul>
+                    </div>`;
+            }
+            container.innerHTML = html;
+            
+            const selectors = [
+                'div.container:not(.c-5) > span.label.active',
+                'div[data-type="3"] span a[data-index]',
+                'ul.list li.item:not(.first):not(.last)',
+                '.container span.label ~ ul li'
+            ];
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let round = 0; round < 50; round++) {
+                for (const selector of selectors) {
+                    try {
+                        total += container.querySelectorAll(selector).length;
+                    } catch (e) {}
+                }
+            }
+            
+            const time = performance.now() - start;
+            container.innerHTML = '';
+            
+            return Math.round((50 * selectors.length) / (time / 1000));
+        }
+
+        function testLayoutThrashExtreme() {
+            const container = document.getElementById('testArea');
+            container.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:800px;';
+            
+            const elements = [];
+            for (let i = 0; i < 60; i++) {
+                const div = document.createElement('div');
+                div.style.cssText = `
+                    position: relative;
+                    width: calc(100% - ${i}px);
+                    padding: ${i % 20}px;
+                    margin: ${i % 10}px;
+                    float: ${i % 2 ? 'left' : 'right'};
+                `;
+                div.textContent = 'Content '.repeat(i % 5 + 1);
+                container.appendChild(div);
+                elements.push(div);
+            }
+            
+            const start = performance.now();
+            
+            for (let round = 0; round < 20; round++) {
+                for (const el of elements) {
+                    el.style.width = (el.offsetWidth + 1) + 'px';
+                    const h = el.offsetHeight;
+                    el.style.padding = (parseInt(el.style.padding) + 1) % 20 + 'px';
+                    const w = el.offsetWidth;
+                    el.style.width = 'calc(100% - 10px)';
+                }
+            }
+            
+            const time = performance.now() - start;
+            container.innerHTML = '';
+            
+            return Math.round((elements.length * 20) / (time / 1000));
+        }
+
+        function testSparseArrays() {
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 2000; i++) {
+                const sparse = [];
+                sparse[0] = 0;
+                sparse[100] = 100;
+                sparse[10000] = 10000;
+                
+                sparse.forEach(x => total += x);
+                sparse.map(x => x * 2);
+                sparse.filter(x => x > 50);
+                
+                const mixed = [];
+                for (let j = 0; j < 50; j++) {
+                    if (j % 10 === 0) mixed[j * 100] = j;
+                    else mixed[j] = j;
+                }
+                
+                mixed.indexOf(25);
+                mixed.includes(500);
+                
+                delete mixed[5];
+                
+                for (const x of mixed) {
+                    if (x !== undefined) total += x;
+                }
+            }
+            
+            return Math.round(2000 / ((performance.now() - start) / 1000));
+        }
+
+        function testGeneratorStress() {
+            function* deepGenerator(depth) {
+                if (depth === 0) {
+                    yield depth;
+                    return depth;
+                }
+                yield depth;
+                yield* deepGenerator(depth - 1);
+                yield depth * 2;
+                return depth;
+            }
+            
+            function* complexGenerator(n) {
+                for (let i = 0; i < n; i++) {
+                    if (i % 3 === 0) {
+                        yield* deepGenerator(4);
+                    } else {
+                        yield i;
+                    }
+                }
+            }
+            
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 800; i++) {
+                for (const val of complexGenerator(15)) {
+                    total += val;
+                }
+                
+                for (const val of deepGenerator(8)) {
+                    total += val;
+                }
+            }
+            
+            return Math.round(800 / ((performance.now() - start) / 1000));
+        }
+
+        function testWeakRefPressure() {
+            const start = performance.now();
+            let total = 0;
+            
+            const registry = new FinalizationRegistry(value => {
+                total += value;
+            });
+            
+            const weakRefs = [];
+            const weakMap = new WeakMap();
+            const weakSet = new WeakSet();
+            
+            for (let i = 0; i < 3000; i++) {
+                let obj = { id: i, data: new Array(50).fill(i) };
+                
+                const ref = new WeakRef(obj);
+                weakRefs.push(ref);
+                
+                registry.register(obj, i);
+                weakMap.set(obj, i);
+                weakSet.add(obj);
+                
+                if (i % 50 === 0) {
+                    for (let j = Math.max(0, weakRefs.length - 50); j < weakRefs.length; j++) {
+                        const deref = weakRefs[j].deref();
+                        if (deref) total += deref.id;
+                    }
+                }
+                
+                if (weakMap.has(obj)) {
+                    total += weakMap.get(obj);
+                }
+                
+                if (i % 5 !== 0) obj = null;
+            }
+            
+            return Math.round(3000 / ((performance.now() - start) / 1000));
+        }
+
+        function testReflectMetaOps() {
+            const start = performance.now();
+            let total = 0;
+            
+            for (let i = 0; i < 10000; i++) {
+                const obj = { a: 1, b: 2, c: 3 };
+                
+                Reflect.get(obj, 'a');
+                Reflect.set(obj, 'd', 4);
+                Reflect.has(obj, 'b');
+                Reflect.deleteProperty(obj, 'c');
+                Reflect.ownKeys(obj);
+                
+                function testFn(x, y) { return x + y; }
+                total += Reflect.apply(testFn, null, [i, i + 1]);
+                
+                function TestClass(val) { this.val = val; }
+                const instance = Reflect.construct(TestClass, [i]);
+                total += instance.val;
+                
+                Reflect.defineProperty(obj, 'e', {
+                    value: 5,
+                    writable: true,
+                    enumerable: true,
+                    configurable: true
+                });
+                
+                Reflect.getPrototypeOf(obj);
+                Reflect.isExtensible(obj);
+            }
+            
+            return Math.round(10000 / ((performance.now() - start) / 1000));
+        }
+
+        function testSymbolChaos() {
+            const start = performance.now();
+            let total = 0;
+            
+            const symbols = [];
+            for (let i = 0; i < 50; i++) {
+                symbols.push(Symbol(`sym${i}`));
+            }
+            
+            for (let i = 0; i < 5000; i++) {
+                const obj = {};
+                
+                for (let j = 0; j < 15; j++) {
+                    obj['str' + j] = j;
+                    obj[symbols[j % symbols.length]] = j * 2;
+                }
+                
+                total += obj.str5;
+                total += obj[symbols[5]];
+                
+                obj[Symbol.toPrimitive] = function(hint) {
+                    return hint === 'number' ? 42 : 'obj';
+                };
+                
+                total += +obj;
+                
+                for (const key in obj) {
+                    total += obj[key];
+                }
+                
+                const allKeys = Reflect.ownKeys(obj);
+                for (const key of allKeys) {
+                    const val = obj[key];
+                    if (typeof val === 'number') total += val;
+                }
+            }
+            
+            return Math.round(5000 / ((performance.now() - start) / 1000));
+        }
+
+        detectEngine();
+    </script>
+</body>
+</html>
